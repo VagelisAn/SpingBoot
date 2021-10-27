@@ -2,13 +2,14 @@ package com.back.service.impl;
 
 import com.back.config.jwt.JwtUtils;
 import com.back.dto.JwtResponse;
+import com.back.dto.RoleDTO;
+import com.back.dto.UserDTO;
 import com.back.dto.request.LoginDTO;
 import com.back.dto.response.MessageResponse;
 import com.back.entity.*;
 import com.back.repository.*;
-import com.back.service.AuthenticationServices;
+import com.back.service.ApplicationServices;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -18,11 +19,10 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.stream.Collectors;
 
 @Service
-public class AuthenticationServicesImp implements AuthenticationServices {
+public class AdminServiceImpl implements ApplicationServices {
 
     @Autowired
     private AuthenticationManager authenticationManager;
@@ -48,10 +48,7 @@ public class AuthenticationServicesImp implements AuthenticationServices {
     @Autowired
     private PasswordEncoder encoder;
 
-    @Autowired
-    private JwtUtils jwtUtils;
-
-    public AuthenticationServicesImp(AuthenticationManager authenticationManager, UserRepository userRepository, UserInfoRepository userInfoRepository, UserRolePrivilegeRepository userRolePrivilegeRepository, UserToRoleRepository userToRoleRepository, UserRoleRepository userRoleRepository, UserPrivilegeRepository userPrivilegeRepository, PasswordEncoder encoder, JwtUtils jwtUtils) {
+    public AdminServiceImpl(AuthenticationManager authenticationManager, UserRepository userRepository, UserInfoRepository userInfoRepository, UserRolePrivilegeRepository userRolePrivilegeRepository, UserToRoleRepository userToRoleRepository, UserRoleRepository userRoleRepository, UserPrivilegeRepository userPrivilegeRepository, PasswordEncoder encoder) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.userInfoRepository = userInfoRepository;
@@ -60,30 +57,8 @@ public class AuthenticationServicesImp implements AuthenticationServices {
         this.userRoleRepository = userRoleRepository;
         this.userPrivilegeRepository = userPrivilegeRepository;
         this.encoder = encoder;
-        this.jwtUtils = jwtUtils;
     }
 
-    @Override
-    public JwtResponse logIn(LoginDTO loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
-        List<String> roles = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
-
-        return new JwtResponse(jwt,
-                userDetails.getId(),
-                userDetails.getUsername(),
-                userDetails.getEmail(),
-                roles);
-    }
-
-    @Override
     public MessageResponse register(User signUpRequest) {
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
             return new MessageResponse("Error: Username is already taken!");
@@ -117,8 +92,6 @@ public class AuthenticationServicesImp implements AuthenticationServices {
 
             UserRole userRole =  role.getRole();
 
-            userRole.setRoleName(userRole.getRoleName().toUpperCase());
-
             List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
             List<UserRolePrivilege> userRolePrivilegesStore = new ArrayList<>();
 
@@ -144,4 +117,82 @@ public class AuthenticationServicesImp implements AuthenticationServices {
 
         return new MessageResponse("User registered successfully!");
     }
+
+    public UserDTO getUserById(long id){
+
+        User user = userRepository.findAllById(id);
+
+            UserDTO userDTO = new UserDTO(
+                    user.getId(),
+                    user.getUsername(),
+                    user.isActivate(),
+                    user.getUserInfo().getFirstName(),
+                    user.getUserInfo().getLastName(),
+                    user.getUserInfo().getDepartment(),
+                    user.getUserInfo().getAddress()
+                    ,user.getUserInfo().getPhone());
+
+            List<RoleDTO> roleDTOS = new ArrayList<>();
+
+            List<UserToRole> userToRoles = user.getUserToRoles();
+            List<String> privileges = new ArrayList<>();
+
+            for(UserToRole role : userToRoles){
+                UserRole userRole =  role.getRole();
+                List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
+                for(UserRolePrivilege privilege :userRolePrivileges) {
+                    privileges.add(privilege.getPrivilege().getPrivilegeName());
+                }
+                RoleDTO roleDTO = new RoleDTO();
+
+                roleDTO.setRole(role.getRole().getRoleName());
+                roleDTO.setPrivilege(privileges);
+                roleDTOS.add(roleDTO);
+            }
+            userDTO.setRoles(roleDTOS);
+
+        return userDTO;
+    }
+
+    public List<UserDTO> getUsers(){
+        List<User> listUser = userRepository.findAll();
+        List<UserDTO> userDTOS = new ArrayList<>();
+
+        for (User user: listUser
+             ) {
+            UserDTO userDTO = new UserDTO(
+                    user.getId(),
+                    user.getUsername(),
+                    user.isActivate(),
+                    user.getUserInfo().getFirstName(),
+                    user.getUserInfo().getLastName(),
+                    user.getUserInfo().getDepartment(),
+                    user.getUserInfo().getAddress()
+                    ,user.getUserInfo().getPhone());
+
+            List<RoleDTO> roleDTOS = new ArrayList<>();
+
+            List<UserToRole> userToRoles = user.getUserToRoles();
+            List<String> privileges = new ArrayList<>();
+
+            for(UserToRole role : userToRoles){
+                UserRole userRole =  role.getRole();
+                List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
+                for(UserRolePrivilege privilege :userRolePrivileges) {
+                    privileges.add(privilege.getPrivilege().getPrivilegeName());
+                }
+                RoleDTO roleDTO = new RoleDTO();
+
+                roleDTO.setRole(role.getRole().getRoleName());
+                roleDTO.setPrivilege(privileges);
+                roleDTOS.add(roleDTO);
+            }
+            userDTO.setRoles(roleDTOS);
+            userDTOS.add(userDTO);
+        }
+
+        return userDTOS;
+    }
+
+
 }
