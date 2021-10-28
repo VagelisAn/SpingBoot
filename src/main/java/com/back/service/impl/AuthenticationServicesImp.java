@@ -111,37 +111,31 @@ public class AuthenticationServicesImp implements AuthenticationServices {
         userInfo = userInfoRepository.save(userInfo);
 
         List<UserToRole> userToRoles = signUpRequest.getUserToRoles();
-        List<UserToRole> userToRolesStore = new ArrayList<>();
+
 
         for(UserToRole role : userToRoles){
-
+            List<UserToRole> userToRolesStore = new ArrayList<>();
             UserRole userRole =  role.getRole();
-
-            userRole.setRoleName(userRole.getRoleName().toUpperCase());
-
+            UserRole userRoleFromTep = userRoleRepository.findByRoleName(userRole.getRoleName().toUpperCase());
+//            userRole.setRoleName(userRole.getRoleName().toUpperCase());
             List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
             List<UserRolePrivilege> userRolePrivilegesStore = new ArrayList<>();
-
-            userRole = userRoleRepository.save(userRole);
-
+//            userRole = userRoleRepository.save(userRole);
             for(UserRolePrivilege privilege :userRolePrivileges) {
-                UserPrivilege userPrivilege = privilege.getPrivilege();
-                userPrivilege = userPrivilegeRepository.save(userPrivilege);
-
+//                UserPrivilege userPrivilege = privilege.getPrivilege();
+//                userPrivilege = userPrivilegeRepository.save(userPrivilege);
+                UserPrivilege userPrivilege = userPrivilegeRepository.findByPrivilegeName(privilege.getPrivilege().getPrivilegeName());
                 privilege.setPrivilege(userPrivilege);
-                privilege.setRole(userRole);
+                privilege.setRole(userRoleFromTep);
                 userRolePrivilegesStore.add(userRolePrivilegeRepository.save(privilege));
             }
             role.setUser(user);
-            role.setRole(userRole);
-
+            role.setRole(userRoleFromTep);
             userToRolesStore.add(userToRoleRepository.save(role));
-
+            user.setUserToRoles(userToRolesStore);
         }
-        user.setUserToRoles(userToRolesStore);
         user.setUserInfo(userInfo);
         userRepository.save(user);
-
         return new MessageResponse("User registered successfully!");
     }
 }

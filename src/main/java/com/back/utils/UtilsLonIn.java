@@ -1,2 +1,4 @@
-package com.back.utils;public class UtilsLonIn {
+package com.back.utils;
+
+public class UtilsLonIn {
 }

@@ -1,25 +1,21 @@
 package com.back.service.impl;
 
-import com.back.config.jwt.JwtUtils;
-import com.back.dto.JwtResponse;
-import com.back.dto.RoleDTO;
 import com.back.dto.UserDTO;
-import com.back.dto.request.LoginDTO;
 import com.back.dto.response.MessageResponse;
 import com.back.entity.*;
 import com.back.repository.*;
 import com.back.service.ApplicationServices;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Set;
 
 @Service
 public class AdminServiceImpl implements ApplicationServices {
@@ -86,10 +82,9 @@ public class AdminServiceImpl implements ApplicationServices {
         userInfo = userInfoRepository.save(userInfo);
 
         List<UserToRole> userToRoles = signUpRequest.getUserToRoles();
-        List<UserToRole> userToRolesStore = new ArrayList<>();
 
         for(UserToRole role : userToRoles){
-
+            List<UserToRole> userToRolesStore = new ArrayList<>();
             UserRole userRole =  role.getRole();
 
             List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
@@ -109,9 +104,9 @@ public class AdminServiceImpl implements ApplicationServices {
             role.setRole(userRole);
 
             userToRolesStore.add(userToRoleRepository.save(role));
-
+            user.setUserToRoles(userToRolesStore);
         }
-        user.setUserToRoles(userToRolesStore);
+
         user.setUserInfo(userInfo);
         userRepository.save(user);
 
@@ -119,6 +114,8 @@ public class AdminServiceImpl implements ApplicationServices {
     }
 
     public UserDTO getUserById(long id){
+
+        Set<GrantedAuthority> authorities = new HashSet<>();
 
         User user = userRepository.findAllById(id);
 
@@ -132,24 +129,14 @@ public class AdminServiceImpl implements ApplicationServices {
                     user.getUserInfo().getAddress()
                     ,user.getUserInfo().getPhone());
 
-            List<RoleDTO> roleDTOS = new ArrayList<>();
-
-            List<UserToRole> userToRoles = user.getUserToRoles();
-            List<String> privileges = new ArrayList<>();
-
-            for(UserToRole role : userToRoles){
-                UserRole userRole =  role.getRole();
-                List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
-                for(UserRolePrivilege privilege :userRolePrivileges) {
-                    privileges.add(privilege.getPrivilege().getPrivilegeName());
-                }
-                RoleDTO roleDTO = new RoleDTO();
-
-                roleDTO.setRole(role.getRole().getRoleName());
-                roleDTO.setPrivilege(privileges);
-                roleDTOS.add(roleDTO);
+        for (UserToRole userToRole : user.getUserToRoles()) {
+            authorities.add(new SimpleGrantedAuthority("ROLE_" + userToRole.getRole().getRoleName()));
+            for (UserRolePrivilege userRoleToPrivilege : userToRole.getRole().getUserRolePrivileges()) {
+                authorities.add(new SimpleGrantedAuthority(userRoleToPrivilege.getPrivilege().getPrivilegeName()));
             }
-            userDTO.setRoles(roleDTOS);
+        }
+
+        userDTO.setAuthorities(authorities);
 
         return userDTO;
     }
@@ -170,24 +157,16 @@ public class AdminServiceImpl implements ApplicationServices {
                     user.getUserInfo().getAddress()
                     ,user.getUserInfo().getPhone());
 
-            List<RoleDTO> roleDTOS = new ArrayList<>();
+            Set<GrantedAuthority> authorities = new HashSet<>();
 
-            List<UserToRole> userToRoles = user.getUserToRoles();
-            List<String> privileges = new ArrayList<>();
-
-            for(UserToRole role : userToRoles){
-                UserRole userRole =  role.getRole();
-                List<UserRolePrivilege> userRolePrivileges = userRole.getUserRolePrivileges();
-                for(UserRolePrivilege privilege :userRolePrivileges) {
-                    privileges.add(privilege.getPrivilege().getPrivilegeName());
+            for (UserToRole userToRole : user.getUserToRoles()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + userToRole.getRole().getRoleName()));
+                for (UserRolePrivilege userRoleToPrivilege : userToRole.getRole().getUserRolePrivileges()) {
+                    authorities.add(new SimpleGrantedAuthority(userRoleToPrivilege.getPrivilege().getPrivilegeName()));
                 }
-                RoleDTO roleDTO = new RoleDTO();
-
-                roleDTO.setRole(role.getRole().getRoleName());
-                roleDTO.setPrivilege(privileges);
-                roleDTOS.add(roleDTO);
             }
-            userDTO.setRoles(roleDTOS);
+
+            userDTO.setAuthorities(authorities);
             userDTOS.add(userDTO);
         }
 

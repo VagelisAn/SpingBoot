@@ -16,7 +16,7 @@ public class UserDTO  {
 	private String department;
 	private String address;
 	private String phone;
-	private List<RoleDTO> roles;
+	private Collection<? extends GrantedAuthority> authorities;
 
 	public UserDTO() {
 	}
@@ -32,14 +32,19 @@ public class UserDTO  {
 		this.phone = phone;
 	}
 
-
-	public List<RoleDTO> getRoles() {
-		return roles;
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
-	public void setRoles(List<RoleDTO> roles) {
-		this.roles = roles;
+
+	public Collection<? extends GrantedAuthority> getAuthorities() {
+		return authorities;
 	}
+
+	public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {
+		this.authorities = authorities;
+	}
+
 
 	public String getFirstName() {
 		return firstName;

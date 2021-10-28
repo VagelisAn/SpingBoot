@@ -6,4 +6,5 @@ import org.springframework.data.repository.CrudRepository;
 
 public interface UserPrivilegeRepository extends JpaRepository<UserPrivilege, Long> {
 
+    UserPrivilege findByPrivilegeName(String privilegeName);
 }
